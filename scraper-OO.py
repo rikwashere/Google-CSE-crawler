@@ -20,9 +20,9 @@ class Connection:
 		self.driver.get(cse_url)
 		
 		if 'Google' in self.driver.title:
-			print 'Succesfully initiated driver.'
+			print '\t[i] Succesfully initiated driver.'
 		else:
-			raise 'Error initiating browser. Quitting.'
+			raise '\t[!] Error initiating browser. Quitting.'
 			sys.exit()
 
 		for i in self.driver.find_elements_by_tag_name('input'):
@@ -84,7 +84,7 @@ if __name__ == '__main__':
 			#print '[i] processed %i trolls' % len(processed)
 
 			if troll_handle[0] in processed:
-				print '[i] Already processed <%s>' % troll_handle
+				print '[i] Already processed <%s>' % troll_handle[0]
 				continue
 		
 		else:
@@ -105,8 +105,27 @@ if __name__ == '__main__':
 			print '\t[i] Detected overlay!'
 		except TimeoutException:
 			# No results visible, change CSE
-			cse_urls[current_cse] = False
-			new_cse = random.choice([cse for cse in cse_urls.keys() if cse_urls[cse] != True])
+			choices = [cse for cse in cse_urls.keys() if cse_urls[cse] != True]
+			
+			if len(choices) == 0:
+				# exhausted all CSEs. 
+
+				cycles = 15 # sleep 15 minutes 
+				print '\t[!] Exhausted all CSEs. Sleeping for 15 minutes',
+				while cycles > 0:
+					time.sleep(60) 
+					print '. ',
+					cycles -= 1
+
+				cse_urls = {	'https://cse.google.com/cse/publicurl?cx=006674705950714944870:oubvsfffxwo' : False,
+								'https://cse.google.com/cse/publicurl?cx=006674705950714944870:ejjevixkyr4' : False,
+								'https://cse.google.com/cse/publicurl?cx=006674705950714944870:pksdgtyzbtg' : False
+							}
+				# retry
+				choices = cse_urls.keys()
+
+
+			new_cse = random.choice(choices)
 			cse_urls[new_cse] = True
 			print '\t[i] Starting up new CSE: <%s>' % new_cse
 			con = Connection(new_cse)
