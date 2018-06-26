@@ -1,5 +1,4 @@
 <h2>Google CSE crawler<h2>
-
 <p>A script that uses Google CSE (Custom Search Engines) to automatically search selected sites for certain keywords. This script was used to find sites of Dutch media that used tweets of Russian trolls in their articles.</p> 
 
 <a href='https://www.nrc.nl/nieuws/2017/12/08/media-nederland-citeerden-trollen-als-bron-a1584306'>Read the full article here [Dutch]</a>
