@@ -40,7 +40,7 @@ with open('updated_handles.csv') as csv_in:
 
 
 def build_driver(cse_url):
-	driver = webdriver.Firefox(executable_path='./geckodriver')
+	driver = webdriver.Firefox(executable_path='./geckodriver-win')
 	driver.set_window_size(640, 640)
 	driver.get(cse_url)
 
@@ -63,7 +63,6 @@ def build_driver(cse_url):
 			submit_button = button
 
 	return driver, submit_button, query_box, cse_url
-
 
 current_cse = random.choice(cse_urls.keys())
 cse_urls[current_cse] = True
