@@ -1,5 +1,6 @@
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
@@ -8,12 +9,13 @@ from bs4 import BeautifulSoup
 import unicodecsv as csv
 import random
 import time
+import json
 import os
 
 class Connection:
 
 	def __init__(self, cse_url):
-		self.driver = webdriver.Firefox()
+		self.driver = webdriver.Firefox(executable_path='./geckodriver')
 		self.driver.set_window_size(640, 640)
 		self.driver.get(cse_url)
 		
@@ -36,7 +38,8 @@ class Connection:
 		self.driver.find_element_by_class_name('gsc-results-close-btn').click()
 
 	def scrape(self):
-		
+		urls = []
+
 		try:
 			self.driver.find_element_by_class_name('gs-spelling')
 			auto_correct = True
@@ -47,11 +50,14 @@ class Connection:
 	
 		if soup.find('div', {'class' : 'gsc-webResult gsc-result'}):
 			for result in soup.findAll('div', {'class' : 'gsc-webResult gsc-result'}):
-				urls = [title.a['href'] for title in result.find('div', {'class':'gs-title'})]
+				title = result.find('div', {'class':'gs-title'})
+				
+				if title:
+					urls.append(title.a['href'])
 
 		return {	'urls': urls,
 					'results' : len(urls),
-					'autocorrect' : autocorrect,
+					'autocorrect' : auto_correct,
 					'troll_handle' : ''
 				}
 
@@ -67,33 +73,36 @@ if __name__ == '__main__':
 
 	current_cse = random.choice([cse_url for cse_url in cse_urls if cse_urls[cse_url] != True])
 	cse_urls[current_cse] = True
-
 	con = Connection(current_cse)
 
 	for troll_handle in data:
-		t0 = time.time()
-
 		if 'troll.json' in os.listdir('.'):
 			with open('troll.json', 'r') as json_in:
 				out = json.load(json_in)
 			
 			processed = [t['troll_handle'] for t in out['Trolls']]	
-			print '[i] processed %i trolls' % len(processed)
+			#print '[i] processed %i trolls' % len(processed)
+
 			if troll_handle[0] in processed:
 				print '[i] Already processed <%s>' % troll_handle
 				continue
+		
+		else:
+			out = {'Trolls' : []}
 
-			else:
-				out = {'Trolls' : []}
-
+		# starting driver
+		t0 = time.time()
+		
+		
 		# input in CSE and push query
-		print 'Looking for <%s>' % troll_handle
+		print 'Looking for <%s>' % troll_handle[0]
 		con.query_box.send_keys('"%s"' % troll_handle[0])
 		con.query_box.send_keys(Keys.RETURN)
 
 		# check to see if overlay pops up
 		try:
 			WebDriverWait(con.driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, 'gsc-results-wrapper-visible')))
+			print '\t[i] Detected overlay!'
 		except TimeoutException:
 			# No results visible, change CSE
 			cse_urls[current_cse] = False
@@ -104,14 +113,20 @@ if __name__ == '__main__':
 			continue
 
 		# scrape
+		print '\t[i] Scraping...'
 		data_out = con.scrape()
 		data_out['troll_handle'] = troll_handle[0]
 		out['Trolls'].append(data_out)
+
+		print '\t[i[ Found %i urls. Saving...' % data_out['results']
 		json.dump(out, open('troll.json', 'w'), sort_keys=True, indent=4)
 
 		# close overlay
+		print '\t[i] Cleaning browser.'
 		con.close_overlay()
 		con.query_box.clear()
 
 		# sleep to prevent rate limit
-		time.sleep((time.time() - t0) * 10)
+		#nap_time = (time.time() - t0) * 10
+		#print '\t[i] Sleeing %.2f seconds.' % nap_time
+		#time.sleep(nap_time)
